@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather Forecast</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    .bg-gradient {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+    }
+    .weather-card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .weather-card:hover {
+      transform: scale(1.03);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+    }
+    
+    /* Weather Backgrounds */
+    .sunny-bg {
+      background: linear-gradient(135deg, #ffd60a, #ff9500);
+    }
+    .cloudy-bg {
+      background: linear-gradient(135deg, #b0b7c6, #6b7280);
+    }
+    .rainy-bg {
+      background: linear-gradient(135deg, #3b82f6, #1e3a8a);
+    }
+    .thunder-bg {
+      background: linear-gradient(135deg, #4b5563, #1f2937);
+    }
+    .snow-bg {
+      background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+    }
+    .default-bg {
+      background: linear-gradient(135deg, #d1d5db, #9ca3af);
+    }
+    
+    /* Weather Effects */
+    .sun-rays {
+      position: absolute;
+      top: -50px;
+      left: -50px;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+      border-radius: 50%;
+      opacity: 0.6;
+    }
+    
+    .raindrop {
+      position: absolute;
+      width: 2px;
+      height: 15px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 0 0 5px 5px;
+      animation: rain linear infinite;
+    }
+    
+    @keyframes rain {
+      to { transform: translateY(100vh); }
+    }
+    
+    .lightning {
+      position: absolute;
+      width: 3px;
+      height: 30px;
+      background: white;
+      opacity: 0;
+      animation: lightning 4s linear infinite;
+    }
+    
+    @keyframes lightning {
+      0% { opacity: 0; }
+      1% { opacity: 1; }
+      2% { opacity: 0; }
+      8% { opacity: 0; }
+      9% { opacity: 1; }
+      10% { opacity: 0; }
+      100% { opacity: 0; }
+    }
+    
+    .snowflake {
+      position: absolute;
+      color: white;
+      font-size: 1rem;
+      animation: snow linear infinite;
+    }
+    
+    @keyframes snow {
+      to { transform: translateY(100vh); }
+    }
+    
+    .cloud {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen bg-gradient flex items-center justify-center p-4 overflow-auto font-sans">
+  <div class="container bg-white/10 backdrop-blur-md rounded-2xl shadow-xl p-8 w-full h-full max-w-2xl flex flex-col items-center justify-start">
+    <h1 class="text-3xl font-extrabold text-white text-center mb-6">🌤️ Weather Forecast</h1>
+
+    <!-- Forecast Weather Display -->
+    <div id="forecastResult" class="mb-6 p-6 rounded-xl hidden weather-card max-w-md w-full text-white relative"></div>
+
+    <!-- Back Button -->
+    <button id="backBtn" class="mt-4 w-full max-w-md p-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all shadow-md">
+      🔙 Back to Dashboard
+    </button>
+
+    <!-- Error Message -->
+    <div id="error" class="text-red-400 text-center w-full max-w-md font-medium mt-4"></div>
+  </div>
+
+  <script>
+    function createWeatherEffects(condition, element) {
+      // Clear previous effects
+      const existingEffects = element.querySelectorAll('.weather-effect');
+      existingEffects.forEach(effect => effect.remove());
+      
+      condition = condition.toLowerCase();
+      
+      if (condition.includes("sun") || condition.includes("clear")) {
+        // Create sun rays
+        const rays = document.createElement('div');
+        rays.className = 'weather-effect sun-rays';
+        element.appendChild(rays);
+        
+        // Add more rays at different angles
+        for (let i = 0; i < 8; i++) {
+          const ray = document.createElement('div');
+          ray.className = 'weather-effect sun-rays';
+          ray.style.transform = `rotate(${i * 45}deg)`;
+          element.appendChild(ray);
+        }
+      } 
+      else if (condition.includes("rain") || condition.includes("shower")) {
+        // Create raindrops
+        for (let i = 0; i < 30; i++) {
+          const drop = document.createElement('div');
+          drop.className = 'weather-effect raindrop';
+          drop.style.left = `${Math.random() * 100}%`;
+          drop.style.top = `${Math.random() * 100}%`;
+          drop.style.animationDuration = `${0.5 + Math.random() * 1}s`;
+          drop.style.opacity = Math.random();
+          element.appendChild(drop);
+        }
+      }
+      else if (condition.includes("thunder")) {
+        // Create lightning effects
+        for (let i = 0; i < 3; i++) {
+          const bolt = document.createElement('div');
+          bolt.className = 'weather-effect lightning';
+          bolt.style.left = `${20 + (i * 30)}%`;
+          bolt.style.top = `${10 + (i * 10)}%`;
+          bolt.style.animationDelay = `${i * 2}s`;
+          element.appendChild(bolt);
+        }
+      }
+      else if (condition.includes("snow")) {
+        // Create snowflakes
+        for (let i = 0; i < 20; i++) {
+          const flake = document.createElement('div');
+          flake.className = 'weather-effect snowflake';
+          flake.innerHTML = '❄';
+          flake.style.left = `${Math.random() * 100}%`;
+          flake.style.top = `${Math.random() * 100}%`;
+          flake.style.animationDuration = `${5 + Math.random() * 10}s`;
+          flake.style.opacity = Math.random();
+          flake.style.fontSize = `${0.5 + Math.random()}rem`;
+          element.appendChild(flake);
+        }
+      }
+      else if (condition.includes("cloud")) {
+        // Create clouds
+        for (let i = 0; i < 5; i++) {
+          const cloud = document.createElement('div');
+          cloud.className = 'weather-effect cloud';
+          cloud.style.width = `${40 + Math.random() * 40}px`;
+          cloud.style.height = `${20 + Math.random() * 20}px`;
+          cloud.style.left = `${Math.random() * 100}%`;
+          cloud.style.top = `${Math.random() * 50}%`;
+          cloud.style.opacity = 0.5 + Math.random() * 0.3;
+          element.appendChild(cloud);
+        }
+      }
+    }
+
+    function getWeatherBackground(condition) {
+      condition = condition.toLowerCase();
+      if (condition.includes("sun") || condition.includes("clear")) return "sunny-bg";
+      if (condition.includes("cloud")) return "cloudy-bg";
+      if (condition.includes("rain") || condition.includes("shower")) return "rainy-bg";
+      if (condition.includes("thunder")) return "thunder-bg";
+      if (condition.includes("snow")) return "snow-bg";
+      return "default-bg";
+    }
+
+    function getWeatherEmoji(condition) {
+      condition = condition.toLowerCase();
+      if (condition.includes("sun") || condition.includes("clear")) return "☀️";
+      if (condition.includes("cloud")) return "☁️";
+      if (condition.includes("rain") || condition.includes("shower")) return "🌧️";
+      if (condition.includes("thunder")) return "⛈️";
+      if (condition.includes("snow")) return "❄️";
+      return "🌤️";
+    }
+
+    async function fetchForecast() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const city = urlParams.get("city");
+      const datetime = urlParams.get("datetime");
+
+      const forecastResult = document.getElementById("forecastResult");
+      const errorDiv = document.getElementById("error");
+
+      forecastResult.innerHTML = "";
+      forecastResult.classList.add("hidden");
+      errorDiv.innerHTML = "";
+
+      if (!city || !datetime) {
+        errorDiv.innerHTML = "❌ Missing city or datetime.";
+        return;
+      }
+
+      try {
+        const response = await fetch(`/forecast?city=${encodeURIComponent(city)}&datetime=${encodeURIComponent(datetime)}`);
+        if (!response.ok) {
+          throw new Error("Forecast data not available");
+        }
+
+        const data = await response.json();
+        const weatherEmoji = getWeatherEmoji(data.condition);
+        const backgroundClass = getWeatherBackground(data.condition);
+        forecastResult.className = `mb-6 p-6 rounded-xl weather-card max-w-md w-full text-white ${backgroundClass} fade-in`;
+
+        forecastResult.innerHTML = `
+          <h2 class="text-2xl font-semibold mb-4 relative z-10">${weatherEmoji} Forecast for ${data.name}</h2>
+          <div class="space-y-3 relative z-10">
+            <p>📅 Forecast Time: ${data.forecastTime}</p>
+            <p>🌡️ Temperature: ${data.temperature.toFixed(1)}°C</p>
+            <p>💧 Humidity: ${data.humidity}%</p>
+            <p>🌬️ Wind Speed: ${data.windSpeed.toFixed(1)} km/h</p>
+            <p>🌤️ Condition: ${data.condition}</p>
+            <p>⏰ Time Difference from Sri Lanka: ${data.timeDifference >= 0 ? "+" : ""}${data.timeDifference.toFixed(1)} hours</p>
+          </div>
+        `;
+        
+        // Add weather effects
+        createWeatherEffects(data.condition, forecastResult);
+      } catch (error) {
+        errorDiv.innerHTML = `❌ ${error.message}`;
+      }
+    }
+
+    document.getElementById("backBtn").addEventListener("click", () => {
+      window.location.href = "/static/index.html";
+    });
+
+    fetchForecast();
+  </script>
+</body>
+</html>

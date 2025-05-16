@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.6s ease-in-out; }
+    .bg-gradient {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+    }
+    .weather-card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .weather-card:hover {
+      transform: scale(1.03);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+    }
+    
+    /* Weather Backgrounds */
+    .sunny-bg {
+      background: linear-gradient(135deg, #ffd60a, #ff9500);
+    }
+    .cloudy-bg {
+      background: linear-gradient(135deg, #b0b7c6, #6b7280);
+    }
+    .rainy-bg {
+      background: linear-gradient(135deg, #3b82f6, #1e3a8a);
+    }
+    .thunder-bg {
+      background: linear-gradient(135deg, #4b5563, #497180);
+    }
+    .snow-bg {
+      background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+    }
+    .default-bg {
+      background: linear-gradient(135deg, #d1d5db, #9ca3af);
+    }
+    
+    /* Weather Effects */
+    .sun {
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+      border-radius: 50%;
+      opacity: 0.8;
+    }
+    
+    .sun-ray {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 200px;
+      height: 10px;
+      background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.7), rgba(255,255,255,0));
+      transform-origin: left center;
+      animation: pulse 3s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.8; }
+    }
+    
+    .raindrop {
+      position: absolute;
+      width: 2px;
+      height: 15px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 0 0 5px 5px;
+      animation: rain linear infinite;
+    }
+    
+    @keyframes rain {
+      to { transform: translateY(100vh); }
+    }
+    
+    .lightning {
+      position: absolute;
+      width: 3px;
+      height: 30px;
+      background: white;
+      opacity: 0;
+      animation: lightning 4s linear infinite;
+    }
+    
+    @keyframes lightning {
+      0% { opacity: 0; }
+      1% { opacity: 1; }
+      2% { opacity: 0; }
+      8% { opacity: 0; }
+      9% { opacity: 1; }
+      10% { opacity: 0; }
+      100% { opacity: 0; }
+    }
+    
+    .snowflake {
+      position: absolute;
+      color: white;
+      font-size: 1rem;
+      animation: snow linear infinite;
+      opacity: 0.8;
+    }
+    
+    @keyframes snow {
+      to { transform: translateY(100vh) rotate(360deg); }
+    }
+    
+    .cloud {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 50%;
+      animation: float 20s linear infinite;
+    }
+    
+    @keyframes float {
+      0% { transform: translateX(-100px); }
+      100% { transform: translateX(calc(100vw + 100px)); }
+    }
+    
+    .fog {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      animation: fogMovement 15s linear infinite;
+    }
+    
+    @keyframes fogMovement {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    .breeze {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.05), rgba(255,255,255,0));
+      animation: breeze 8s linear infinite;
+    }
+    
+    @keyframes breeze {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    .current-weather {
+      background: hsl(206, 100%, 79%);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 500px;
+    }
+    
+    .weather-info {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    
+    .weather-info p {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen bg-gradient flex items-center justify-center p-4 overflow-auto font-sans">
+  <div class="container bg-white/10 backdrop-blur-md rounded-2xl shadow-xl p-8 w-full h-full max-w-4xl flex flex-col items-center justify-start">
+    <!-- Header -->
+    <div class="w-full flex justify-between items-center mb-8">
+      <h1 class="text-4xl font-extrabold text-white flex items-center gap-2">
+        🌤️ <span>Weather Dashboard</span>
+      </h1>
+      <div id="currentTime" class="text-white text-sm font-mono"></div>
+    </div>
+
+    <!-- Input Section -->
+    <div class="mb-6 w-full max-w-md flex flex-col items-center space-y-4">
+      <input
+        type="text"
+        id="cityInput"
+        placeholder="Enter city name"
+        class="w-full p-4 rounded-xl bg-white/80 border border-gray-300 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-indigo-400 text-gray-800 font-medium shadow-sm"
+      />
+      <button
+        id="seeReportBtn"
+        class="w-full p-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all shadow-md"
+        onclick="fetchWeather()"
+      >
+        🔍 See Weather Report
+      </button>
+    </div>
+
+    <!-- Current Weather Display -->
+    <div id="currentWeather" class="current-weather hidden fade-in">
+      <h2 class="text-2xl font-bold mb-4 text-white" id="currentWeatherTitle"></h2>
+      <div class="weather-info" id="currentWeatherInfo"></div>
+    </div>
+
+    <!-- Date & Time Picker -->
+    <div id="datetimePickerContainer" class="mb-6 hidden w-full max-w-md fade-in">
+      <label for="dateInput" class="block text-sm font-semibold text-white mb-2">
+        📅 Select Date for Forecast
+      </label>
+      <input
+        type="text"
+        id="dateInput"
+        placeholder="Pick a date"
+        class="w-full p-3 rounded-lg bg-white/80 border border-gray-300 focus:outline-none focus:ring-4 focus:ring-indigo-400 text-gray-800 mb-4"
+      />
+      <label for="timeSelect" class="block text-sm font-semibold text-white mb-2">
+        ⏰ Select Time (1–24 Hours)
+      </label>
+      <select
+        id="timeSelect"
+        class="w-full p-3 rounded-lg bg-white/80 border border-gray-300 focus:outline-none focus:ring-4 focus:ring-indigo-400 text-gray-800"
+      >
+        <option value="">Select Time</option>
+        <option value="01:00:00">01:00</option>
+        <option value="02:00:00">02:00</option>
+        <option value="03:00:00">03:00</option>
+        <option value="04:00:00">04:00</option>
+        <option value="05:00:00">05:00</option>
+        <option value="06:00:00">06:00</option>
+        <option value="07:00:00">07:00</option>
+        <option value="08:00:00">08:00</option>
+        <option value="09:00:00">09:00</option>
+        <option value="10:00:00">10:00</option>
+        <option value="11:00:00">11:00</option>
+        <option value="12:00:00">12:00</option>
+        <option value="13:00:00">13:00</option>
+        <option value="14:00:00">14:00</option>
+        <option value="15:00:00">15:00</option>
+        <option value="16:00:00">16:00</option>
+        <option value="17:00:00">17:00</option>
+        <option value="18:00:00">18:00</option>
+        <option value="19:00:00">19:00</option>
+        <option value="20:00:00">20:00</option>
+        <option value="21:00:00">21:00</option>
+        <option value="22:00:00">22:00</option>
+        <option value="23:00:00">23:00</option>
+        <option value="00:00:00">24:00</option>
+      </select>
+      <button
+        id="fetchForecastBtn"
+        class="mt-4 w-full p-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all shadow-md"
+      >
+        🔍 Get Forecast
+      </button>
+    </div>
+
+    <!-- Error Message -->
+    <div id="error" class="text-red-400 text-center w-full max-w-md font-medium"></div>
+  </div>
+
+  <script>
+    let fp;
+    function initializeDatePicker(minDate, maxDate) {
+      if (fp) fp.destroy();
+      fp = flatpickr("#dateInput", {
+        dateFormat: "Y-m-d",
+        minDate: minDate,
+        maxDate: maxDate,
+      });
+    }
+
+    function createWeatherEffects(condition, element) {
+      // Clear previous effects
+      const existingEffects = element.querySelectorAll('.weather-effect');
+      existingEffects.forEach(effect => effect.remove());
+      
+      condition = condition.toLowerCase();
+      
+      if (condition.includes("sun") || condition.includes("clear")) {
+        // Create sun with rays
+        const sun = document.createElement('div');
+        sun.className = 'weather-effect sun';
+        element.appendChild(sun);
+        
+        // Add sun rays
+        for (let i = 0; i < 12; i++) {
+          const ray = document.createElement('div');
+          ray.className = 'weather-effect sun-ray';
+          ray.style.transform = `rotate(${i * 30}deg)`;
+          ray.style.animationDelay = `${i * 0.2}s`;
+          element.appendChild(ray);
+        }
+        
+        // Add gentle breeze effect
+        const breeze = document.createElement('div');
+        breeze.className = 'weather-effect breeze';
+        element.appendChild(breeze);
+      } 
+      else if (condition.includes("rain") || condition.includes("shower") || condition.includes("drizzle")) {
+        // Create raindrops
+        for (let i = 0; i < 50; i++) {
+          const drop = document.createElement('div');
+          drop.className = 'weather-effect raindrop';
+          drop.style.left = `${Math.random() * 100}%`;
+          drop.style.top = `${Math.random() * -100}px`;
+          drop.style.animationDuration = `${0.5 + Math.random() * 0.5}s`;
+          drop.style.opacity = 0.3 + Math.random() * 0.7;
+          element.appendChild(drop);
+        }
+        
+        // Add fog/mist effect
+        const fog = document.createElement('div');
+        fog.className = 'weather-effect fog';
+        element.appendChild(fog);
+      }
+      else if (condition.includes("thunder") || condition.includes("storm")) {
+        // Create lightning effects
+        for (let i = 0; i < 5; i++) {
+          const bolt = document.createElement('div');
+          bolt.className = 'weather-effect lightning';
+          bolt.style.left = `${10 + (i * 20)}%`;
+          bolt.style.top = `${10 + (i * 5)}%`;
+          bolt.style.animationDelay = `${i * 1.5}s`;
+          element.appendChild(bolt);
+        }
+        
+        // Add heavy rain
+        for (let i = 0; i < 80; i++) {
+          const drop = document.createElement('div');
+          drop.className = 'weather-effect raindrop';
+          drop.style.left = `${Math.random() * 100}%`;
+          drop.style.top = `${Math.random() * -100}px`;
+          drop.style.animationDuration = `${0.3 + Math.random() * 0.3}s`;
+          drop.style.opacity = 0.5 + Math.random() * 0.5;
+          element.appendChild(drop);
+        }
+      }
+      else if (condition.includes("snow") || condition.includes("blizzard")) {
+        // Create snowflakes
+        for (let i = 0; i < 30; i++) {
+          const flake = document.createElement('div');
+          flake.className = 'weather-effect snowflake';
+          flake.innerHTML = '❄';
+          flake.style.left = `${Math.random() * 100}%`;
+          flake.style.top = `${Math.random() * -100}px`;
+          flake.style.animationDuration = `${5 + Math.random() * 10}s`;
+          flake.style.opacity = 0.5 + Math.random() * 0.5;
+          flake.style.fontSize = `${0.5 + Math.random()}rem`;
+          element.appendChild(flake);
+        }
+        
+        // Add fog effect
+        const fog = document.createElement('div');
+        fog.className = 'weather-effect fog';
+        element.appendChild(fog);
+      }
+      else if (condition.includes("cloud") || condition.includes("overcast")) {
+        // Create moving clouds
+        for (let i = 0; i < 5; i++) {
+          const cloud = document.createElement('div');
+          cloud.className = 'weather-effect cloud';
+          cloud.style.width = `${40 + Math.random() * 60}px`;
+          cloud.style.height = `${20 + Math.random() * 30}px`;
+          cloud.style.left = `${Math.random() * -200}px`;
+          cloud.style.top = `${10 + Math.random() * 50}%`;
+          cloud.style.opacity = 0.6 + Math.random() * 0.3;
+          cloud.style.animationDuration = `${30 + Math.random() * 30}s`;
+          element.appendChild(cloud);
+        }
+        
+        // Add breeze effect
+        const breeze = document.createElement('div');
+        breeze.className = 'weather-effect breeze';
+        element.appendChild(breeze);
+      }
+      else {
+        // Default breeze effect for other conditions
+        const breeze = document.createElement('div');
+        breeze.className = 'weather-effect breeze';
+        element.appendChild(breeze);
+      }
+    }
+
+    function getWeatherBackground(condition) {
+      condition = condition.toLowerCase();
+      if (condition.includes("sun") || condition.includes("clear")) return "sunny-bg";
+      if (condition.includes("cloud") || condition.includes("overcast")) return "cloudy-bg";
+      if (condition.includes("rain") || condition.includes("shower") || condition.includes("drizzle")) return "rainy-bg";
+      if (condition.includes("thunder") || condition.includes("storm")) return "thunder-bg";
+      if (condition.includes("snow") || condition.includes("blizzard")) return "snow-bg";
+      return "default-bg";
+    }
+
+    function getWeatherEmoji(condition) {
+      condition = condition.toLowerCase();
+      if (condition.includes("sun") || condition.includes("clear")) return "☀️";
+      if (condition.includes("cloud") || condition.includes("overcast")) return "☁️";
+      if (condition.includes("rain") || condition.includes("shower") || condition.includes("drizzle")) return "🌧️";
+      if (condition.includes("thunder") || condition.includes("storm")) return "⛈️";
+      if (condition.includes("snow") || condition.includes("blizzard")) return "❄️";
+      if (condition.includes("fog") || condition.includes("mist")) return "🌫️";
+      return "🌤️";
+    }
+
+    function updateCurrentTime() {
+      const now = new Date();
+      const sriLankaOffset = 5 * 60 + 30;
+      const utcOffset = now.getTimezoneOffset();
+      const sriLankaTime = new Date(now.getTime() + (sriLankaOffset + utcOffset) * 60000);
+      const timeString = sriLankaTime.toISOString().slice(0, 19).replace("T", " ") + " (UTC+5:30)";
+      document.getElementById("currentTime").textContent = timeString;
+    }
+
+    // Only update time on load, don't fetch weather
+    window.addEventListener('load', () => {
+      updateCurrentTime();
+      setInterval(updateCurrentTime, 1000);
+    });
+
+    async function fetchWeather() {
+      const city = document.getElementById("cityInput").value.trim();
+      const currentWeather = document.getElementById("currentWeather");
+      const currentWeatherTitle = document.getElementById("currentWeatherTitle");
+      const currentWeatherInfo = document.getElementById("currentWeatherInfo");
+      const datetimePickerContainer = document.getElementById("datetimePickerContainer");
+      const errorDiv = document.getElementById("error");
+
+      currentWeatherInfo.innerHTML = "";
+      currentWeather.classList.add("hidden");
+      datetimePickerContainer.classList.add("hidden");
+      errorDiv.innerHTML = "";
+
+      if (!city) {
+        errorDiv.innerHTML = "❌ Please enter a city name.";
+        return;
+      }
+
+      try {
+        const response = await fetch(`/weather?city=${encodeURIComponent(city)}`);
+        if (!response.ok) throw new Error("City not found");
+
+        const data = await response.json();
+        const emoji = getWeatherEmoji(data.condition);
+        currentWeatherTitle.innerHTML = `${emoji} Current Weather in ${data.name}`;
+        
+        currentWeatherInfo.innerHTML = `
+          <p>🌡️ <span>Temp: ${data.temperature.toFixed(1)}°C</span></p>
+          <p>💧 <span>Humidity: ${data.humidity}%</span></p>
+          <p>🌬️ <span>Wind: ${data.windSpeed.toFixed(1)} km/h</span></p>
+          <p>🌤️ <span>Condition: ${data.condition}</span></p>
+          <p>🕒 <span>Time Diff (SL): ${data.timeDifference >= 0 ? "+" : ""}${data.timeDifference.toFixed(1)} hrs</span></p>
+          <p>📍 <span>Local Time: ${data.currentTime}</span></p>
+        `;
+        
+        createWeatherEffects(data.condition, currentWeather);
+        currentWeather.classList.remove("hidden");
+        currentWeather.classList.add("fade-in");
+
+        const now = new Date();
+        const minDate = now;
+        const maxDate = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
+        initializeDatePicker(minDate, maxDate);
+        datetimePickerContainer.classList.remove("hidden");
+        datetimePickerContainer.classList.add("fade-in");
+
+      } catch (error) {
+        errorDiv.innerHTML = `❌ ${error.message}`;
+      }
+    }
+
+    async function fetchForecast() {
+      const city = document.getElementById("cityInput").value.trim();
+      const date = document.getElementById("dateInput").value;
+      const time = document.getElementById("timeSelect").value;
+      const errorDiv = document.getElementById("error");
+      errorDiv.innerHTML = "";
+
+      if (!date || !time) {
+        errorDiv.innerHTML = "❌ Please select both a date and time.";
+        return;
+      }
+
+      const datetime = `${date} ${time}`;
+      window.location.href = `/static/forecast.html?city=${encodeURIComponent(city)}&datetime=${encodeURIComponent(datetime)}`;
+    }
+
+    document.getElementById("cityInput").addEventListener("keypress", e => {
+      if (e.key === "Enter") fetchWeather();
+    });
+
+    document.getElementById("fetchForecastBtn").addEventListener("click", fetchForecast);
+  </script>
+</body>
+</html>
